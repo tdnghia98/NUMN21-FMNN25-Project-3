@@ -65,8 +65,8 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, plot = True):
         room3.solve()
         
         ## step7: get new boundary values
-        temp_gamma_1_new = room1.get_solution(where = 'left')
-        temp_gamma_2_new = room3.get_solution(where = 'right')
+        temp_gamma_1_new = room1.get_solution(where = 'right')
+        temp_gamma_2_new = room3.get_solution(where = 'left')
         
         ## step8: relaxation and update solutions
         temp_gamma_1_old = (1-theta)*temp_gamma_1_old + theta*temp_gamma_1_new

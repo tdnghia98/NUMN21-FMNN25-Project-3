@@ -6,47 +6,86 @@ Created on Fri Oct  9 11:43:06 2020
 
 import numpy as np
 import scipy.sparse as sps
+from scipy.sparse.linalg import spsolve
+from scipy.sparse import diags
+import matplotlib.pyplot as plt
+
 
 class room:
-    def __init__(self, n_x, n_y, dx, dy):
-        self.n_x, self.n_y = n_x, n_y # number of interior unknowns in given dimension
-        self.dy, self.dy = dx, dy
-        
+    def __init__(self, nx, ny):
+        #if not self.ny:
+         #   self.ny = self.nx
+        self.nx, self.ny = nx, ny # number of interior unknowns in given dimension
+        self.dx, self.dy = 1/(nx), 2/(ny) 
+        self.dof = nx*ny
         ## TODO
-        self.A = sps.eye(self.n_x * self.n_y)
-        self.b = np.zeros(self.n_x * self.n_y)
-        
-        self.u = None ## solution
-        
+        self.A = diags([1/self.dy**2,1/self.dx**2,-2*(self.dx**2+self.dy**2)/(self.dx**2*self.dy**2),1/self.dx**2,1/self.dy**2],[-nx,-1,0,1,nx],shape=(self.dof,self.dof),format="csr")
+        self.f = None
+        self.u = None ## solution   
+
+
     def add_boundary(self, which = 'D', where = 'left', value = None):
+        ny = self.ny
+        nx = self.nx
+        dof = self.dof
+        dx = self.dx
+        dy = self.dy
+        A = self.A
+        f = self.f
         ## TODO: differentiate between simple value and actual array for "value"
         ## adding boundary condtions to self.A resp. self.b
         if which == 'D': ## adding Dirichlet boundary
+            #not so sure where to put/input the values for now
+            GWL=15
+            GWR=GWL
+            GH=40
+            GWF=5
             if where == 'left':
-                ## TODO
-                pass
+                left_border=np.arange(0,nx*np.int(ny/2),nx)
+                for i in left_border:
+                    f[i]=-GWL/dx**2
+                    if i>0:
+                        A[i,i-1]-=1/dx**2
             elif where == 'right':
-                ## TODO
-                pass
+                right_border=np.arange(nx-1+nx*(np.int(ny/2)),dof,nx)
+                for i in right_border:
+                    f[i]=-GWR/dx**2
+                    if i<dof-1:
+                        A[i,i+1]-=1/dx**2
             elif where == 'top':
-                ## TODO
-                pass
+                top_border=np.arange(nx)
+                for i in top_border:
+                    f[i]=-GH/dy**2
             elif where == 'bottom':
-                ## TODO
-                pass
+                bottom_border=np.arange(dof-nx,dof)
+                for i in bottom_border:
+                    f[i]=-GWF/dy**2
+                    #A[i,i]+=1/dy**2
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')
-        elif which == 'N':
+        elif which == 'N':    
+            init_guess_Omega1=25
+            init_guess_Omega3=10
+            f=np.zeros(dof)
             if where == 'left':
-                ## TODO
-                pass
+                neu_left_border=np.arange(nx*(np.int(ny/2)),dof,nx)
+                for i in neu_left_border:
+                    f[i]=-init_guess_Omega1/dx
+                    A[i,i]+=1/dx**2
+                    if i>0:
+                        A[i,i-1]-=1/dx**2
             elif where == 'right':
-                ## TODO
-                pass
+                neu_right_border=np.arange(nx-1,nx*np.int(ny/2),nx)
+                for i in neu_right_border:
+                    f[i]=-init_guess_Omega3/dx
+                    A[i,i]+=1/dx**2
+                    if i<dof-1:
+                        A[i,i+1]-=1/dx**2
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')
         else:
             raise KeyError('invalid boundary condition type specified')
+        return([A, f])
     
     def get_flux(self, where = 'left'):
         if where == 'left':
@@ -66,10 +105,20 @@ class room:
             ## TODO
             return np.zeros(self.n_y)
         elif where == 'full':
-            ## TODO re-check this one, make sure dimensions fit
-            return self.u.reshape(self.n_x, self.n_y)
+            self.f = np.zeros(self.dof)
+            for i in('left', 'right', 'top', 'bottom'):
+                temp = self.add_boundary(where = i)
+                self.A, self.f = temp[0], temp[1]
+            return [self.A,self.f]
         else:
             raise KeyError('invalid <where> location specified, resp. not implemented')
         
     def solve(self):
-        self.u = sps.linalg.spsolve(self.A, self.b)
+        temp2 = self.get_solution()
+        self.u = spsolve(temp2[0], temp2[1])
+        self.u = self.u.reshape((self.ny,self.nx))[::-1]
+        return self.u
+    def plotting(self):
+        plt.figure()
+        plt.imshow(self.solve(), origin='upper', cmap='hot')
+        plt.colorbar()

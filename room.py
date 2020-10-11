@@ -113,13 +113,13 @@ class room:
         else:
             raise KeyError('invalid <where> location specified, resp. not implemented')
         
-    def solve(self):
-        temp2 = self.get_solution()
+    def solve(self, which = 'N'):
+        temp2 = self.get_solution(which = which)
         self.u = spsolve(temp2[0], temp2[1])
         self.u = self.u.reshape((self.ny,self.nx))[::-1]
         return self.u
     
     def plotting(self):
         plt.figure()
-        plt.imshow(self.solve(), origin='upper', cmap='hot')
+        plt.imshow(self.solve(which = 'N'), origin='upper', cmap='hot')
         plt.colorbar()

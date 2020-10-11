@@ -18,10 +18,8 @@ class room:
         self.nx, self.ny = nx, ny # number of interior unknowns in given dimension
         self.dx, self.dy = 1/(nx), 2/(ny) 
         self.dof = nx*ny
-        ## TODO
         self.A = diags([1/self.dy**2,1/self.dx**2,-2*(self.dx**2+self.dy**2)/(self.dx**2*self.dy**2),1/self.dx**2,1/self.dy**2],[-nx,-1,0,1,nx],shape=(self.dof,self.dof),format="csr")
-        self.f = None
-        self.u = None ## solution   
+        self.f = None #solution
 
 
     def add_boundary(self, which = 'D', where = 'left', value = None, GWL = 15, GWR=15, GH=40, GWF=5, init_guess_Omega1=25, init_guess_Omega3=10):
@@ -81,21 +79,20 @@ class room:
         return([A, f])
     
     def get_flux(self, where = 'left'):
+            ## TODO 
         if where == 'left':
-            ## TODO
             return np.zeros(self.n_y)
         elif where == 'right':
-            ## TODO
             return np.zeros(self.n_y)
         else:
             raise KeyError('invalid <where> location specified, resp. not implemented')
         
     def get_solution(self, which = 'D', where = 'full'):
         if where == 'left':
-            ## TODO
+            ## TODO for the mpi problem >> put in dirichlet/neumann condition for the boundary
             return np.zeros(self.n_y)
         elif where == 'right':
-            ## TODO
+            ## TODO for the mpi problem >> put in dirichlet/neumann condition for the boundary
             return np.zeros(self.n_y)
         elif where == 'full' and which == 'D':
             self.f = np.zeros(self.dof)

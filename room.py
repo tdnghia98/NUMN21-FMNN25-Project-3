@@ -24,7 +24,7 @@ class room:
         self.u = None ## solution   
 
 
-    def add_boundary(self, which = 'D', where = 'left', value = None, GWL=15, GWR=15, GH=40, GWF=5, init_guess_Omega1=25, init_guess_Omega3=10):
+    def add_boundary(self, which = 'D', where = 'left', value = None, GWL = 15, GWR=15, GH=40, GWF=5, init_guess_Omega1=25, init_guess_Omega3=10):
         ny = self.ny
         nx = self.nx
         dof = self.dof
@@ -90,17 +90,24 @@ class room:
         else:
             raise KeyError('invalid <where> location specified, resp. not implemented')
         
-    def get_solution(self, where = 'full'):
+    def get_solution(self, which = 'D', where = 'full'):
         if where == 'left':
             ## TODO
             return np.zeros(self.n_y)
         elif where == 'right':
             ## TODO
             return np.zeros(self.n_y)
-        elif where == 'full':
+        elif where == 'full' and which == 'D':
             self.f = np.zeros(self.dof)
-            for i in('left', 'right', 'top', 'bottom'):
-                temp = self.add_boundary(where = i)
+            for i in ('left', 'right', 'top', 'bottom'):
+                temp = self.add_boundary(which = 'D', where = i)
+                self.A, self.f = temp[0], temp[1]
+            return [self.A,self.f]
+        
+        elif where == 'full' and which == 'N':
+            self.f = np.zeros(self.dof)
+            for i in ('left', 'right'):
+                temp = self.add_boundary(which = 'N', where = i)
                 self.A, self.f = temp[0], temp[1]
             return [self.A,self.f]
         else:

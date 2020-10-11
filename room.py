@@ -24,7 +24,7 @@ class room:
         self.u = None ## solution   
 
 
-    def add_boundary(self, which = 'D', where = 'left', value = None):
+    def add_boundary(self, which = 'D', where = 'left', value = None, GWL=15, GWR=GWL, GH=40, GWF=5, init_guess_Omega1=25, init_guess_Omega3=10):
         ny = self.ny
         nx = self.nx
         dof = self.dof
@@ -34,12 +34,7 @@ class room:
         f = self.f
         ## TODO: differentiate between simple value and actual array for "value"
         ## adding boundary condtions to self.A resp. self.b
-        if which == 'D': ## adding Dirichlet boundary
-            #not so sure where to put/input the values for now
-            GWL=15
-            GWR=GWL
-            GH=40
-            GWF=5
+        if which == 'D': ## adding Dirichlet boundary            
             if where == 'left':
                 left_border=np.arange(0,nx*np.int(ny/2),nx)
                 for i in left_border:
@@ -63,9 +58,7 @@ class room:
                     #A[i,i]+=1/dy**2
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')
-        elif which == 'N':    
-            init_guess_Omega1=25
-            init_guess_Omega3=10
+        elif which == 'N':
             f=np.zeros(dof)
             if where == 'left':
                 neu_left_border=np.arange(nx*(np.int(ny/2)),dof,nx)
@@ -118,6 +111,7 @@ class room:
         self.u = spsolve(temp2[0], temp2[1])
         self.u = self.u.reshape((self.ny,self.nx))[::-1]
         return self.u
+    
     def plotting(self):
         plt.figure()
         plt.imshow(self.solve(), origin='upper', cmap='hot')

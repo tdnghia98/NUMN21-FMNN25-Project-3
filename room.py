@@ -24,7 +24,7 @@ class room:
         self.u = None ## solution   
 
 
-    def add_boundary(self, which = 'D', where = 'left', value = None, GWL=15, GWR=GWL, GH=40, GWF=5, init_guess_Omega1=25, init_guess_Omega3=10):
+    def add_boundary(self, which = 'D', where = 'left', value = None, GWL=15, GWR=15, GH=40, GWF=5, init_guess_Omega1=25, init_guess_Omega3=10):
         ny = self.ny
         nx = self.nx
         dof = self.dof

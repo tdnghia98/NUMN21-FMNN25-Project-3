@@ -19,8 +19,8 @@ class room:
         self.dx, self.dy = 1/(nx), 2/(ny) 
         self.dof = nx*ny
         self.A = diags([1/self.dy**2,1/self.dx**2,-2*(self.dx**2+self.dy**2)/(self.dx**2*self.dy**2),1/self.dx**2,1/self.dy**2],[-nx,-1,0,1,nx],shape=(self.dof,self.dof),format="csr")
-        self.f = None #solution
-
+        self.f = None #boundary conditions
+        self.u = None #solution
 
     def add_boundary(self, which = 'D', where = 'left', value = None, init_guess_Omega1=25, init_guess_Omega3=10):
         ny = self.ny
@@ -31,47 +31,45 @@ class room:
         A = self.A
         f = self.f
         ## TODO: differentiate between simple value and actual array for "value"
-        ## adding boundary condtions to self.A resp. self.b
-        if which == 'D': ## adding Dirichlet boundary            
+        ## adding boundary condtions to self.A resp. self.f
+        if which == 'D': ## adding Dirichlet boundary         
             if where == 'left':
-                left_border=np.arange(0,nx*np.int(ny/2),nx)
-                for i in left_border:
-                    f[i]=-value/dx**2
-                    if i>0:
-                        A[i,i-1]-=1/dx**2
+                left_border=np.arange(0,dof,nx)
+                f[left_border]=-value/dx**2
+                lft=left_border[left_border>0] 
+                A[lft,lft-1]-=1/dx**2
+                
             elif where == 'right':
-                right_border=np.arange(nx-1+nx*(np.int(ny/2)),dof,nx)
-                for i in right_border:
-                    f[i]=-value/dx**2
-                    if i<dof-1:
-                        A[i,i+1]-=1/dx**2
+                right_border=np.arange(nx-1,dof,nx)
+                f[right_border]=value/dx**2
+                rt=right_border[right_border<dof-1]
+                A[rt,rt+1]-=1/dx**2
+ 
             elif where == 'top':
                 top_border=np.arange(nx)
-                for i in top_border:
-                    f[i]=-value/dy**2
+                f[top_border]=-value/dy**2
+                
             elif where == 'bottom':
                 bottom_border=np.arange(dof-nx,dof)
-                for i in bottom_border:
-                    f[i]=-value/dy**2
-                    #A[i,i]+=1/dy**2
+                f[bottom_border]=-value/dy**2
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')
         elif which == 'N':
             f=np.zeros(dof)
             if where == 'left':
-                neu_left_border=np.arange(nx*(np.int(ny/2)),dof,nx)
-                for i in neu_left_border:
-                    f[i]=-init_guess_Omega1/dx
-                    A[i,i]+=1/dx**2
-                    if i>0:
-                        A[i,i-1]-=1/dx**2
+                neu_left_border=np.arange(0,dof,nx)
+                f[neu_left_border]=-value/dx
+                A[neu_left_border,neu_left_border]+=1/dx**2
+                lft=left_border[left_border>0]
+                A[lft,lft-1]-=1/dx**2
+                
             elif where == 'right':
-                neu_right_border=np.arange(nx-1,nx*np.int(ny/2),nx)
-                for i in neu_right_border:
-                    f[i]=-init_guess_Omega3/dx
-                    A[i,i]+=1/dx**2
-                    if i<dof-1:
-                        A[i,i+1]-=1/dx**2
+                neu_right_border=np.arange(nx-1,dof,nx)
+                f[neu_right_border]=-value()/dx
+                A[neu_right_border,neu_right_border]+=1/dx**2
+                rt=right_border[right_border<dof-1]
+                A[rt,rt+1]-=1/dx**2
+
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')
         else:
@@ -79,8 +77,10 @@ class room:
         return([A, f])
     
     def get_flux(self, where = 'left'):
-            ## TODO 
+        
+            ## This is where we need MPI 
         if where == 'left':
+            #N=room1.u[:,nx]-room.u[:,0]
             return np.zeros(self.n_y)
         elif where == 'right':
             return np.zeros(self.n_y)

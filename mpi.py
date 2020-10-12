@@ -5,6 +5,9 @@ from room import room
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
+size = comm.Get_size()
+if size != 3:
+    raise ValueError('invalid number of processors, needs to be 3')
 
 
 def receive_print(data):
@@ -19,6 +22,8 @@ def solve(nx, ny, theta=0.7, maxiter=100, tol=1e-10, plot=True):
     # nx & ny = number of interior unknowns per unit length
     temp_wall = 15
     temp_heater = 40
+    temp_window = 5
+    
 
     dx, dy = 1/(nx + 1), 1/(ny + 1)
 
@@ -59,13 +64,13 @@ def solve(nx, ny, theta=0.7, maxiter=100, tol=1e-10, plot=True):
 
         updates1, updates2 = [], []
         for k in range(maxiter):
-            temp_gamma_0 = comm.recv(source=0)
-            temp_gamma_2 = comm.recv(source=2)
+            temp_gamma_1_old = comm.recv(source=0)
+            temp_gamma_2_old = comm.recv(source=2)
 
             room1.add_boundary('D', 'left',
-                               np.pad(temp_gamma_0, (0, ny + 1), mode='constant', constant_values=temp_wall))  # pad up values to fit whole wall
+                               np.pad(temp_gamma_1_old, (0, ny + 1), mode='constant', constant_values=temp_wall))  # pad up values to fit whole wall
             room1.add_boundary('D', 'right',
-                               np.pad(temp_gamma_2, (ny + 1, 0), mode='constant', constant_values=temp_wall))  # pad up values to fit whole wall
+                               np.pad(temp_gamma_2_old, (ny + 1, 0), mode='constant', constant_values=temp_wall))  # pad up values to fit whole wall
 
             # step 2: solve room2
             room1.solve()
@@ -129,3 +134,17 @@ def solve(nx, ny, theta=0.7, maxiter=100, tol=1e-10, plot=True):
             # Send the new boundary temperature to room 2
             comm.send(temp_gamma_2_new, dest=1)
             send_print(temp_gamma_2_new)
+            
+if __name__ == "__main__":
+    pl.close("all")
+
+    solve(20, 20)
+#    up1, up2, iters = solve(20, 20)
+#
+#    pl.figure()
+#    pl.semilogy(range(iters), up1, label='updates gamma1')
+#    pl.semilogy(range(iters), up2, label='updates gamma2')
+#    pl.xlabel('iteration')
+#    pl.ylabel('update')
+#    pl.grid(True, 'major')
+#    pl.legend()

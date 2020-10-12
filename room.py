@@ -6,6 +6,7 @@ Created on Fri Oct  9 11:43:06 2020
 
 import numpy as np
 import scipy.sparse as sps
+import scipy.sparse.linalg as spl
 
 class room:
     def __init__(self, n_x, n_y, dx, dy):
@@ -72,4 +73,4 @@ class room:
             raise KeyError('invalid <where> location specified, resp. not implemented')
         
     def solve(self):
-        self.u = sps.linalg.spsolve(self.A, self.b)
+        self.u = spl.spsolve(self.A, self.b)

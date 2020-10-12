@@ -13,6 +13,7 @@ def DN_iteration(nx, ny, theta=0.7, maxiter=100, tol=1e-10, plot=True):
     # nx & ny = number of interior unknowns per unit length
     temp_wall = 15
     temp_heater = 40
+    temp_window = 5
 
     dx, dy = 1/(nx + 1), 1/(ny + 1)
 

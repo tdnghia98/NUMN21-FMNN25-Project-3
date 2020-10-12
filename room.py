@@ -34,13 +34,13 @@ class room:
         ## adding boundary condtions to self.A resp. self.b
         if which == 'D': ## adding Dirichlet boundary            
             if where == 'left':
-                left_border=np.arange(0,nx*np.int(ny/2),nx)
+                left_border=np.arange(0,dof,nx)
                 for i in left_border:
                     f[i]=-value/dx**2
                     if i>0:
                         A[i,i-1]-=1/dx**2
             elif where == 'right':
-                right_border=np.arange(nx-1+nx*(np.int(ny/2)),dof,nx)
+                right_border=np.arange(nx-1,dof,nx)
                 for i in right_border:
                     f[i]=-value/dx**2
                     if i<dof-1:
@@ -59,16 +59,16 @@ class room:
         elif which == 'N':
             f=np.zeros(dof)
             if where == 'left':
-                neu_left_border=np.arange(nx*(np.int(ny/2)),dof,nx)
+                neu_left_border=np.arange(0,dof,nx)
                 for i in neu_left_border:
-                    f[i]=-init_guess_Omega1/dx
+                    f[i]=-init_guess_Omega1/dx #flux[i] should go here
                     A[i,i]+=1/dx**2
                     if i>0:
                         A[i,i-1]-=1/dx**2
             elif where == 'right':
-                neu_right_border=np.arange(nx-1,nx*np.int(ny/2),nx)
+                neu_right_border=np.arange(nx-1,dof,nx)
                 for i in neu_right_border:
-                    f[i]=-init_guess_Omega3/dx
+                    f[i]=-init_guess_Omega3/dx #flux[i] should go here
                     A[i,i]+=1/dx**2
                     if i<dof-1:
                         A[i,i+1]-=1/dx**2
@@ -79,7 +79,7 @@ class room:
         return([A, f])
     
     def get_flux(self, where = 'left'):
-            ## TODO 
+            ## TODO upper half of the wall is dirichilet conditions
         if where == 'left':
             return np.zeros(self.n_y)
         elif where == 'right':

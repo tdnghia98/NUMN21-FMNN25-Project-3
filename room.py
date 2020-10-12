@@ -22,7 +22,7 @@ class room:
         self.f = None #solution
 
 
-    def add_boundary(self, which = 'D', where = 'left', value = None, GWL = 15, GWR=15, GH=40, GWF=5, init_guess_Omega1=25, init_guess_Omega3=10):
+    def add_boundary(self, which = 'D', where = 'left', value = None, init_guess_Omega1=25, init_guess_Omega3=10):
         ny = self.ny
         nx = self.nx
         dof = self.dof
@@ -36,23 +36,23 @@ class room:
             if where == 'left':
                 left_border=np.arange(0,nx*np.int(ny/2),nx)
                 for i in left_border:
-                    f[i]=-GWL/dx**2
+                    f[i]=-value/dx**2
                     if i>0:
                         A[i,i-1]-=1/dx**2
             elif where == 'right':
                 right_border=np.arange(nx-1+nx*(np.int(ny/2)),dof,nx)
                 for i in right_border:
-                    f[i]=-GWR/dx**2
+                    f[i]=-value/dx**2
                     if i<dof-1:
                         A[i,i+1]-=1/dx**2
             elif where == 'top':
                 top_border=np.arange(nx)
                 for i in top_border:
-                    f[i]=-GH/dy**2
+                    f[i]=-value/dy**2
             elif where == 'bottom':
                 bottom_border=np.arange(dof-nx,dof)
                 for i in bottom_border:
-                    f[i]=-GWF/dy**2
+                    f[i]=-value/dy**2
                     #A[i,i]+=1/dy**2
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')

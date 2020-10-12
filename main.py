@@ -78,16 +78,44 @@ def DN_iteration(nx, ny, theta=0.7, maxiter=100, tol=1e-10, plot=True):
         # step10: check if iteration has converged via updates
         if (updates1[-1] < tol) and (updates2[-1] < tol):
             break
-
-    if plot:
-        # TODO: get solutions, pad them accordingly with wall values and put them into a plot
-        u1 = room1.get_solution()
-        u2 = room2.get_solution()
-        u3 = room3.get_solution()
-
-        pl.figure()
-        # TODO plotting
-
+        
+    if plot: ## currently assuming
+        if dx != dy:
+            raise ValueError('plotting currently not implemented for dx != dy')
+        A = np.zeros((3*(nx+1) + 1, 2*(nx+1) + 1))
+        n = nx + 1
+        
+        # Standard walls 
+        A[:n+1, 0] = temp_wall
+        A[:n+1, n] = temp_wall
+        A[n, n:] = temp_wall
+        A[2*n:, -1] = temp_wall
+        A[2*n:,n] = temp_wall
+        A[2*n, :n] = temp_wall
+        # Window front
+        A[n+1:2*n, 0] = temp_window
+        # Heaters
+        A[0, 1:n] = temp_heater
+        A[-1, n+1:-1] = temp_heater
+        A[n+1:2*n, -1] = temp_heater
+        ## rooms
+        # TODO: make sure these are in the correct shapes
+        A[1:n+1, 1:n] = room1.get_solution()
+        A[n+1:2*n, 1:-1] = room2.get_solution()
+        A[2*n:-1, n+1:-1] = room3.get_solution()
+        
+        ## boundaries
+        A[n, 1:n] = temp_gamma_1_old # left
+        A[2*n, n+1:-1] = temp_gamma_2_old # right
+        
+        pl.subplots(figsize = (8, 4))
+        pl.pcolor(A.transpose(), cmap = 'RdBu_r', vmin = 5, vmax = 40)
+        pl.title('Heat distribution')
+        pl.colorbar()
+        pl.axis([0, 3/dx+1, 0, 2/dx+1])
+        pl.xticks([])
+        pl.yticks([])
+        
     return updates1, updates2, k+1
 
 

@@ -18,70 +18,74 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, plot = True):
     
     ## set up rooms and their static boundary conditions
     room1 = room(nx + 1, ny , dx, dy)
-    room1.add_boundary(temp_heater,'D', 'left')   
-    room1.add_boundary(temp_wall,'D', 'top')   
-    room1.add_boundary(temp_wall,'D', 'bottom')
-    
+    room1.add_boundary(temp_heater, 'D', 'left')   
+    room1.add_boundary(temp_wall, 'D', 'top')   
+    room1.add_boundary(temp_wall, 'D', 'bottom')
+    room1.f_checkpoint()
+    room1.set_boundary_type('N', 'right')
     
     room2 = room(nx, 2*ny+1, dx, dy)
     room2.add_boundary(temp_heater,'D', 'top')
     room2.add_boundary(temp_window,'D', 'bottom')
+    room2.f_checkpoint()
     
     room3 = room(nx + 1, ny, dx, dy)
     room3.add_boundary(temp_heater, 'D', 'right')    
     room3.add_boundary(temp_wall, 'D', 'top')    
     room3.add_boundary(temp_wall, 'D', 'bottom')
-    
+    room3.f_checkpoint()
+    room3.set_boundary_type('N', 'left')
     
     ## set initial condition for boundaries in room2
     temp_gamma_1_old = np.ones(2*ny+1)*temp_wall
     temp_gamma_2_old = np.ones(2*ny+1)*temp_wall
     
-    
     updates1, updates2 = [], []
     for k in range(maxiter):
-        print(temp_gamma_2_old)
         ## step1: add dirichlet boundaries for room2
-        room2.add_boundary(temp_gamma_1_old,'D', 'left')
-        room2.add_boundary(temp_gamma_2_old,'D', 'right')
+        room2.f_reset()
+        room2.add_boundary(temp_gamma_1_old, 'D', 'left')
+        room2.add_boundary(temp_gamma_2_old, 'D', 'right')
         
         ## step 2: solve room2
         room2.solve()
         
         ## step 3: get heat fluxes
-        flux_gamma_1 = room2.get_flux(temp_gamma_1_old,'left')
-        flux_gamma_2 = room2.get_flux(temp_gamma_2_old,'right')
+        flux_gamma_1 = room2.get_flux(temp_gamma_1_old, 'left')
+        flux_gamma_2 = room2.get_flux(temp_gamma_2_old, 'right')
         
         ## step 4: cut to length
-        flux_gamma_1 = flux_gamma_1[:ny]
-        flux_gamma_2 = flux_gamma_2[-ny:]
+        flux_gamma_1 = -flux_gamma_1[:ny]
+        flux_gamma_2 = -flux_gamma_2[-ny:]
         
         ## step5: add fluxes as boundaries to room1 and room3
+        room1.f_reset()
         room1.add_boundary(-flux_gamma_1,'N', 'right')
+        
+        room3.f_reset()
         room3.add_boundary(-flux_gamma_2,'N', 'left')
         
-        ## step6: solve room1 and room3
-        room1.solve()
-        room3.solve()
-        
-        ## step7: get new boundary values
+        ## step6: solve room1 and room3 and get new boundary values
         temp_gamma_1_new = room1.solve(where = 'right')
         temp_gamma_2_new = room3.solve(where = 'left')
         
-        ## step8: relaxation and update solutions
-        L=np.concatenate((temp_gamma_1_old[:ny+1],temp_gamma_1_new))
-        temp_gamma_1_old = (1-theta)*temp_gamma_1_old + theta*L
+        ## step7: relaxation and update solutions
+        L = np.concatenate((temp_gamma_1_old[:ny+1], temp_gamma_1_new))
+        temp_gamma_1_new = (1-theta)*temp_gamma_1_old + theta*L
         R=np.concatenate((temp_gamma_2_new,temp_gamma_2_old[ny:]))
-        temp_gamma_2_old = (1-theta)*temp_gamma_2_old + theta*R
+        temp_gamma_2_new = (1-theta)*temp_gamma_2_old + theta*R
         
-        ## step9: compute updates
+        ## step8: compute updates
         ## TODO: possibly use different norm, e.g., discrete L2 norm?
-        updates1.append(np.linalg.norm(temp_gamma_1_old - L, 2))
-        updates2.append(np.linalg.norm(temp_gamma_2_old - R, 2))
+        updates1.append(np.linalg.norm(temp_gamma_1_old - temp_gamma_1_new, 2))
+        updates2.append(np.linalg.norm(temp_gamma_2_old - temp_gamma_2_new, 2))
         
-        ## step10: check if iteration has converged via updates
+        ## step9: check if iteration has converged via updates
         if (updates1[-1] < tol) and (updates2[-1] < tol):
             break
+        else:
+            temp_gamma_1_old = temp_gamma_1_new
+            temp_gamma_2_old = temp_gamma_2_new
         
     if plot:
         ## TODO: get solutions, pad them accordingly with wall values and put them into a plot
@@ -112,6 +116,3 @@ if __name__ == "__main__":
     plt.ylabel('update')
     plt.grid(True, 'major')
     plt.legend()
-    
-    
-    

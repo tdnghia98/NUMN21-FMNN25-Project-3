@@ -12,17 +12,17 @@ import matplotlib.pyplot as plt
 
 
 class room:
-    def __init__(self, nx, ny):
+    def __init__(self, nx, ny, dx, dy):
         #if not self.ny:
          #   self.ny = self.nx
         self.nx, self.ny = nx, ny # number of interior unknowns in given dimension
-        self.dx, self.dy = 1/(nx), 2/(ny) 
+        self.dx, self.dy = dx, dy  
         self.dof = nx*ny
         self.A = diags([1/self.dy**2,1/self.dx**2,-2*(self.dx**2+self.dy**2)/(self.dx**2*self.dy**2),1/self.dx**2,1/self.dy**2],[-nx,-1,0,1,nx],shape=(self.dof,self.dof),format="csr")
-        self.f = None #boundary conditions
+        self.f = np.zeros(self.dof)#boundary conditions
         self.u = None #solution
 
-    def add_boundary(self, which = 'D', where = 'left', value = None, init_guess_Omega1=25, init_guess_Omega3=10):
+    def add_boundary(self, value, which = 'D', where = 'left'):
         ny = self.ny
         nx = self.nx
         dof = self.dof
@@ -30,7 +30,7 @@ class room:
         dy = self.dy
         A = self.A
         f = self.f
-        ## TODO: differentiate between simple value and actual array for "value"
+        
         ## adding boundary condtions to self.A resp. self.f
         if which == 'D': ## adding Dirichlet boundary         
             if where == 'left':
@@ -60,14 +60,14 @@ class room:
                 neu_left_border=np.arange(0,dof,nx)
                 f[neu_left_border]=-value/dx
                 A[neu_left_border,neu_left_border]+=1/dx**2
-                lft=left_border[left_border>0]
+                lft=neu_left_border[neu_left_border>0]
                 A[lft,lft-1]-=1/dx**2
                 
             elif where == 'right':
                 neu_right_border=np.arange(nx-1,dof,nx)
-                f[neu_right_border]=-value()/dx
+                f[neu_right_border]=-value/dx
                 A[neu_right_border,neu_right_border]+=1/dx**2
-                rt=right_border[right_border<dof-1]
+                rt=neu_right_border[neu_right_border<dof-1]
                 A[rt,rt+1]-=1/dx**2
 
             else:
@@ -76,47 +76,36 @@ class room:
             raise KeyError('invalid boundary condition type specified')
         return([A, f])
     
-    def get_flux(self, where = 'left'):
-        
-            ## This is where we need MPI 
+    
+    def get_flux(self, temp_gamma_old, where = 'left'):
         if where == 'left':
-            #N=room1.u[:,nx]-room.u[:,0]
-            return np.zeros(self.n_y)
+            flux=temp_gamma_old-self.u[np.arange(0,self.dof,self.nx)]
+            return flux
         elif where == 'right':
-            return np.zeros(self.n_y)
+            flux=temp_gamma_old-self.u[np.arange(self.nx-1,self.dof,self.nx)]
+            return flux
         else:
             raise KeyError('invalid <where> location specified, resp. not implemented')
         
-    def get_solution(self, which = 'D', where = 'full'):
+    def solve(self, where = 'full'):
         if where == 'left':
+            sol=spsolve(self.A,self.f)
+            left=sol[np.arange(0,self.dof,self.nx)]
             ## TODO for the mpi problem >> put in dirichlet/neumann condition for the boundary
-            return np.zeros(self.n_y)
+            return left
         elif where == 'right':
+            sol=spsolve(self.A,self.f)
+            rt=sol[np.arange(self.nx-1,self.dof,self.nx)]
             ## TODO for the mpi problem >> put in dirichlet/neumann condition for the boundary
-            return np.zeros(self.n_y)
-        elif where == 'full' and which == 'D':
-            self.f = np.zeros(self.dof)
-            for i in ('left', 'right', 'top', 'bottom'):
-                temp = self.add_boundary(which = 'D', where = i)
-                self.A, self.f = temp[0], temp[1]
-            return [self.A,self.f]
-        
-        elif where == 'full' and which == 'N':
-            self.f = np.zeros(self.dof)
-            for i in ('left', 'right'):
-                temp = self.add_boundary(which = 'N', where = i)
-                self.A, self.f = temp[0], temp[1]
-            return [self.A,self.f]
+            return rt
+        elif where == 'full':
+            self.u=spsolve(self.A,self.f)
+            return self.u
         else:
             raise KeyError('invalid <where> location specified, resp. not implemented')
         
-    def solve(self, which = 'N'):
-        temp2 = self.get_solution(which = which)
-        self.u = spsolve(temp2[0], temp2[1])
-        self.u = self.u.reshape((self.ny,self.nx))[::-1]
-        return self.u
     
     def plotting(self):
-        plt.figure()
-        plt.imshow(self.solve(which = 'N'), origin='upper', cmap='hot')
+        u = self.u.reshape((self.ny,self.nx))[::-1]
+        plt.imshow(u, origin='higher', cmap='hot')
         plt.colorbar()

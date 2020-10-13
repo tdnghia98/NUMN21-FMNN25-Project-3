@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from room import room
 
-def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, plot = True):
+def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
     ## nx & ny = number of interior unknowns per unit length
     temp_wall = 15
     temp_heater = 40
@@ -87,21 +87,43 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, plot = True):
             temp_gamma_1_old = temp_gamma_1_new
             temp_gamma_2_old = temp_gamma_2_new
         
-    if plot:
-        ## TODO: get solutions, pad them accordingly with wall values and put them into a plot
-        room1.solve()
-        room2.solve()
-        room3.solve()
+    if pltot: ## currently assuming
+        if dx != dy:
+            raise ValueError('pltotting currently not impltemented for dx != dy')
+        A = np.zeros((3*(nx+1) + 1, 2*(nx+1) + 1))
+        n = nx + 1
         
-        plt.figure()
-        plt.title("room1")
-        room1.plotting()
-        plt.figure()
-        plt.title("room2")
-        room2.plotting()
-        plt.figure()
-        plt.title("room3")
-        room3.plotting()        
+        # Standard walls 
+        A[:n+1, 0] = temp_wall
+        A[:n+1, n] = temp_wall
+        A[n, n:] = temp_wall
+        A[2*n:, -1] = temp_wall
+        A[2*n:,n] = temp_wall
+        A[2*n, :n] = temp_wall
+        # Window front
+        A[n+1:2*n, 0] = temp_window
+        # Heaters
+        A[0, 1:n] = temp_heater
+        A[-1, n+1:-1] = temp_heater
+        A[n+1:2*n, -1] = temp_heater
+        ## rooms
+        # TODO: make sure these are in the correct shapes
+        A[1:n+1, 1:n] = room1.get_solution()
+        A[n+1:2*n, 1:-1] = np.flip(room2.get_solution())
+        A[2*n:-1, n+1:-1] = room3.get_solution()
+        
+        ## boundaries
+        A[n, 1:n] = temp_gamma_1_new[n:] # left
+        A[2*n, n+1:-1] = temp_gamma_2_new[:n-1] # right
+        
+        plt.subplots(figsize = (8, 4))
+        plt.pcolor(A.transpose(), cmap = 'RdBu_r', vmin = 5, vmax = 40)
+        plt.title('Heat distribution')
+        plt.colorbar()
+        plt.axis([0, 3/dx+1, 0, 2/dx+1])
+        plt.xticks([])
+        plt.yticks([])
+     
     return updates1, updates2, k+1
 
 if __name__ == "__main__":

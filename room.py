@@ -104,10 +104,8 @@ class room:
         else:
             raise KeyError('invalid <where> location specified, resp. not implemented')
     
-    def plotting(self):
-        u = self.u.reshape((self.ny,self.nx))[::-1]
-        plt.imshow(u, origin='higher', cmap='hot')
-        plt.colorbar()
+    def get_solution(self, where = 'full'):
+        return self.u.reshape(self.ny, self.nx).T
         
 if __name__  == '__main__':
     r1 = room(3, 3, 1/3, 1/3)

@@ -71,8 +71,8 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
             flux_gamma_2 = room2.get_flux(temp_gamma_2_old, 'right')
         
             ## step 4: cut to length
-            flux_gamma_1 = -flux_gamma_1[:ny]
-            flux_gamma_2 = -flux_gamma_2[-ny:]
+            flux_gamma_1 = flux_gamma_1[:ny]
+            flux_gamma_2 = flux_gamma_2[-ny:]
             
             comm.send(flux_gamma_1, dest=0)
             comm.send(flux_gamma_2, dest=2)
@@ -82,14 +82,14 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
         if rank == 0:
             room1.f_reset()
             flux_gamma_1 = comm.recv(source=1)
-            room1.add_boundary(-flux_gamma_1,'N', 'right')
+            room1.add_boundary(flux_gamma_1,'N', 'right')
             temp_gamma_1_new = room1.solve(where = 'right')
             comm.send(temp_gamma_1_new, dest=1)
             
         if rank == 2:
             room3.f_reset()
             flux_gamma_2 = comm.recv(source=1)
-            room3.add_boundary(-flux_gamma_2,'N', 'left')
+            room3.add_boundary(flux_gamma_2,'N', 'left')
             temp_gamma_2_new = room3.solve(where = 'left')
             comm.send(temp_gamma_2_new, dest=1)
 
@@ -99,9 +99,9 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
             temp_gamma_1_new = comm.recv(source=0)
             temp_gamma_2_new = comm.recv(source=2)
 
-            L = np.concatenate((temp_gamma_1_old[:ny+1], temp_gamma_1_new))
+            L = np.concatenate((temp_gamma_1_new, temp_gamma_1_old[ny:]))
             temp_gamma_1_new = (1-theta)*temp_gamma_1_old + theta*L
-            R=np.concatenate((temp_gamma_2_new,temp_gamma_2_old[ny:]))
+            R=np.concatenate((temp_gamma_2_old[:-ny], temp_gamma_2_new))
             temp_gamma_2_new = (1-theta)*temp_gamma_2_old + theta*R
         
             ## step8: compute updates
@@ -150,14 +150,13 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
             A[-1, n+1:-1] = temp_heater
             A[n+1:2*n, -1] = temp_heater
             ## rooms
-            # TODO: make sure these are in the correct shapes
             A[1:n+1, 1:n] = comm.recv(source=0)
-            A[n+1:2*n, 1:-1] = np.flip(room2.get_solution(),1)
+            A[n+1:2*n, 1:-1] = room2.get_solution()
             A[2*n:-1, n+1:-1] = comm.recv(source=2)
         
             ## boundaries
-            A[n, 1:n] = temp_gamma_1_new[n:] # left
-            A[2*n, n+1:-1] = temp_gamma_2_new[:n-1] # right
+            A[n, 1:n] = temp_gamma_1_new[:n-1] # left
+            A[2*n, n:-1] = temp_gamma_2_new[-n:] # right
             
             plt.subplots(figsize = (8, 4))
             plt.pcolor(A.transpose(), cmap = 'RdBu_r', vmin = 5, vmax = 40)
@@ -181,4 +180,4 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
 if __name__ == "__main__":
     plt.close("all")
     
-    DN_iteration(10, 10)
+    DN_iteration(30, 30)

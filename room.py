@@ -66,20 +66,20 @@ class room:
                 right_border = np.arange(nx-1, dof, nx)
                 self.f[right_border] -= value/dx**2
             elif where == 'top':
-                top_border = np.arange(nx)
+                top_border = np.arange(dof-nx, dof)
                 self.f[top_border] -= value/dy**2
             elif where == 'bottom':
-                bottom_border = np.arange(dof-nx, dof)
+                bottom_border = np.arange(nx)
                 self.f[bottom_border] -= value/dy**2
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')
         elif which == 'N':
             if where == 'left':
                 neu_left_border = np.arange(0, dof, nx)
-                self.f[neu_left_border] = value
+                self.f[neu_left_border] += value/dx
             elif where == 'right':
                 neu_right_border = np.arange(nx-1, dof, nx)
-                self.f[neu_right_border] = value
+                self.f[neu_right_border] += value/dx
             else:
                 raise KeyError('invalid <where> location specified, resp. not implemented')
         else:

@@ -109,7 +109,7 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
         ## rooms
         # TODO: make sure these are in the correct shapes
         A[1:n+1, 1:n] = room1.get_solution()
-        A[n+1:2*n, 1:-1] = np.flip(room2.get_solution())
+        A[n+1:2*n, 1:-1] = np.flip(room2.get_solution(),1)
         A[2*n:-1, n+1:-1] = room3.get_solution()
         
         ## boundaries
@@ -129,7 +129,7 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
 if __name__ == "__main__":
     plt.close("all")
     
-    up1, up2, iters = DN_iteration(20, 20)
+    up1, up2, iters = DN_iteration(10, 10)
     
     plt.figure()
     plt.semilogy(range(iters), up1, label = 'updates gamma1')

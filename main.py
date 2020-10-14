@@ -123,6 +123,7 @@ def DN_iteration(nx, ny, theta = 0.7, maxiter = 100, tol = 1e-10, pltot = True):
         plt.axis([0, 3/dx+1, 0, 2/dx+1])
         plt.xticks([])
         plt.yticks([])
+        plt.savefig('room.png')
      
     return updates1, updates2, k+1
 
